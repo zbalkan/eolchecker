@@ -26,7 +26,7 @@ class EOLChecker:
         'sun-end-of-life-en',
         'hitachi-end-of-life-en'
         # 'brocade-end-of-life-en' # Ignore Brocade due to problematic HTML table
-        ]
+    ]
 
     def __init__(self) -> None:
         pass
@@ -70,26 +70,29 @@ class EOLChecker:
         soup: BeautifulSoup = BeautifulSoup(content, "html.parser")
         rows: bs4.ResultSet[Any] = soup.find_all("tr")
 
-        headers: dict = {}
+        headers: dict[str, str] = {}
         thead: HtmlElement = soup.find("thead")
         if thead:
             thead: HtmlElement = thead.find_all("th")  # type: ignore
             for i in range(len(thead)):  # type: ignore
                 headers[i] = thead[i].text.strip().lower()  # type: ignore
-        data = []
+        data: list[list[str] | dict[str, str]] = []
         for row in rows:
-            cells = row.find_all("td")
+            cells: HtmlElement = row.find_all("td")
             if thead:
-                items = {}
-                if len(cells) > 0:
+                itemsWithHeaders: dict[str, str] = {}
+                if len(cells) > 0:  # type: ignore
                     for index in headers:
-                        items[headers[index]] = cells[index].text
+                        itemsWithHeaders[headers[index]
+                                         ] = cells[index].text  # type: ignore
+                if itemsWithHeaders:
+                    data.append(itemsWithHeaders)
             else:
-                items = []
-                for index in cells:
-                    items.append(index.text.strip())
-            if items:
-                data.append(items)
+                itemsWithoutHeaders: list[str] = []
+                for index in cells:  # type: ignore
+                    itemsWithoutHeaders.append(index.text.strip())
+                if itemsWithoutHeaders:
+                    data.append(itemsWithoutHeaders)
         return json.dumps(data, indent=indent)
 
 

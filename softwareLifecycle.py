@@ -26,7 +26,3 @@ class SoftwareLifeCycle:
         temp.eol = str(obj.get("eol"))
         temp.releaseDate = str(obj.get("releaseDate"))
         return temp
-
-# Example Usage
-# jsonstring = json.loads(myjsonstring)
-# root = Root.from_dict(jsonstring)

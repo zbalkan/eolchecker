@@ -17,8 +17,9 @@ class HardwareLifecycle:
         _model: str = str(obj.get("model"))
         rawEos: str = str(
             obj.get("end of manufacturer support (some dates may be estimated)")).strip()
+        if(rawEos == "" or rawEos == 'None'): rawEos: str = str(obj.get("end-of-service-life")).strip()
 
-        if(rawEos == "unknown" or rawEos == "noch unbekannt"):
+        if(rawEos == "unknown" or rawEos == "noch unbekannt" or rawEos == "unbekannt"):
             formattedEos: str = "unknown"
         else:
             formattedEos: str = rawEos
@@ -26,7 +27,3 @@ class HardwareLifecycle:
         _eos: str = formattedEos
 
         return HardwareLifecycle(_manuf, _model, _eos)
-
-# Example Usage
-# jsonstring = json.loads(myjsonstring)
-# root = Root.from_dict(jsonstring)
