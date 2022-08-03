@@ -134,9 +134,10 @@ dmypy.json
 # Visual studio
 .vs/
 
-# arya specific excludes
+# Project specific excludes
 pyvenv.cfg
 /Scripts
 cspell.json
 /out
 launch.json
+*.db
