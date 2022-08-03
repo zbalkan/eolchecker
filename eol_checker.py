@@ -99,7 +99,6 @@ class EOLChecker:
 def main() -> None:
 
     checker: EOLChecker = EOLChecker()
-
     # for software in checker.get_eol_software():
     #     print(software)
 

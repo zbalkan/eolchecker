@@ -6,10 +6,10 @@ from typing import Any
 class HardwareLifecycle:
     manufacturer: str
     model: str
-    eos: str
+    eol: str
 
     def __str__(self) -> str:
-        return self.manufacturer + " " + self.model + ": " + self.eos
+        return self.manufacturer + " " + self.model + ": " + self.eol
 
     @staticmethod
     def from_dict(obj: Any) -> 'HardwareLifecycle':
