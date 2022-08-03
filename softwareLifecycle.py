@@ -3,7 +3,7 @@ from typing import Any
 
 
 @dataclass
-class SoftwareLifeCycle:
+class SoftwareLifecycle:
     name: str
     cycle: str
     cycleShortHand: str
@@ -18,8 +18,8 @@ class SoftwareLifeCycle:
         return self.name + ": " + str(self.cycle)
 
     @staticmethod
-    def from_dict(obj: Any) -> 'SoftwareLifeCycle':
-        temp: SoftwareLifeCycle = SoftwareLifeCycle('')
+    def from_dict(obj: Any) -> 'SoftwareLifecycle':
+        temp: SoftwareLifecycle = SoftwareLifecycle('')
         temp.cycle = str(obj.get("cycle"))
         temp.cycleShortHand = str(obj.get("cycleShortHand"))
         temp.support = str(obj.get("support"))

@@ -5,8 +5,9 @@ import bs4
 import requests
 from bs4 import BeautifulSoup
 
+from database import Database
 from hardwareLifecycle import HardwareLifecycle
-from softwareLifecycle import SoftwareLifeCycle
+from softwareLifecycle import SoftwareLifecycle
 
 HtmlElement = Optional[bs4.NavigableString | bs4.Tag]
 
@@ -31,8 +32,8 @@ class EOLChecker:
     def __init__(self) -> None:
         pass
 
-    def get_eol_software(self) -> list[SoftwareLifeCycle]:
-        softwareList: list[SoftwareLifeCycle] = []
+    def get_eol_software(self) -> list[SoftwareLifecycle]:
+        softwareList: list[SoftwareLifecycle] = []
 
         softwareListResponse: requests.Response = requests.get(
             self.SOFTWARE_EOL_API + "/api/all.json")
@@ -44,7 +45,7 @@ class EOLChecker:
             softwareJsonString: list[str] = json.loads(
                 softwareResponse.content)
             for softwareLifecycleJson in softwareJsonString:
-                temp: SoftwareLifeCycle = SoftwareLifeCycle.from_dict(
+                temp: SoftwareLifecycle = SoftwareLifecycle.from_dict(
                     softwareLifecycleJson)
                 temp.name = softwareName
                 softwareList.append(temp)
@@ -99,12 +100,11 @@ class EOLChecker:
 def main() -> None:
 
     checker: EOLChecker = EOLChecker()
-    # for software in checker.get_eol_software():
-    #     print(software)
-
-    for hardware in checker.get_eol_hardware():
-        print(hardware)
-
+    database: Database = Database('eol.db')
+    success: bool = database.flush(softwareList= checker.get_eol_software(), hardwareList=checker.get_eol_hardware())
+    if(success):
+        print("Flushed the EOL data to the database.")
+    database.close()
 
 if __name__ == '__main__':
     main()
