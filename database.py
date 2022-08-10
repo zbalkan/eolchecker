@@ -16,39 +16,45 @@ class Database:
         self.__cursor = self.__connection.cursor()
 
     def flush(self, softwareList: Optional[list[SoftwareLifecycle]] = None, hardwareList: Optional[list[HardwareLifecycle]] = None) -> bool:
-        committing: bool = False
 
         newSoftwareTable: bool = self.__recreate_software_table()
         newHardwareTable: bool = self.__recreate_hardware_table()
 
+        softwareCount: int = 0
+        hardwareCount: int = 0
+
         if (softwareList is not None and newSoftwareTable):
+            softwareCount: int = len(softwareList)
             for software in softwareList:
                 try:
                     softwareCmd: str = "INSERT INTO software VALUES (?, ?, ?, ?, ?, ?)"
                     softwareArgs: tuple[str, str, str, str, str, str] = (
                         software.name, software.cycle, software.cycleShortHand, software.support, software.eol, software.releaseDate)
                     self.__cursor.execute(softwareCmd, softwareArgs)
-                    committing: bool = True
                 except Exception as e:
                     print(str(e))
                     return False
 
+            self.__connection.commit()
+
         if (hardwareList is not None and newHardwareTable):
+            hardwareCount: int = len(hardwareList)
+
             for hardware in hardwareList:
                 try:
                     hardwareCmd: str = "INSERT INTO hardware VALUES (?, ?, ?)"
                     hardwareArgs: tuple[str, str, str] = (
                         hardware.manufacturer, hardware.model, hardware.eol)
                     self.__cursor.execute(hardwareCmd, hardwareArgs)
-                    committing: bool = True
                 except Exception as e:
                     print(str(e))
                     return False
 
-        if(committing):
             self.__connection.commit()
 
-        return committing
+        print('Total ', softwareCount, ' software and ',
+              hardwareCount, ' hardware records found.')
+        return True
 
     def close(self) -> None:
         self.__connection.close()
@@ -68,7 +74,6 @@ class Database:
 
             print('Updated software table successfully.')
             return True
-
 
         except Exception as e:
             print(str(e))
@@ -106,9 +111,8 @@ class Database:
                 "ALTER TABLE hardware_bak RENAME TO hardware;")
             return False
 
-
     def __table_exists(self, table: str) -> bool:
-        cmd : str = "SELECT count(name) FROM sqlite_master WHERE type='table' AND name=?"
-        args : list[str] = [table]
+        cmd: str = "SELECT count(name) FROM sqlite_master WHERE type='table' AND name=?"
+        args: list[str] = [table]
         self.__cursor.execute(cmd, args)
         return self.__cursor.fetchone()[0] == 1
