@@ -27,9 +27,9 @@ class Database:
             softwareCount: int = len(softwareList)
             for software in softwareList:
                 try:
-                    softwareCmd: str = "INSERT INTO software VALUES (?, ?, ?, ?, ?, ?)"
-                    softwareArgs: tuple[str, str, str, str, str, str] = (
-                        software.name, software.cycle, software.cycleShortHand, software.support, software.eol, software.releaseDate)
+                    softwareCmd: str = "INSERT INTO software VALUES (?, ?, ?)"
+                    softwareArgs: tuple[str, str, str] = (
+                        software.name, software.version, software.eol)
                     self.__cursor.execute(softwareCmd, softwareArgs)
                 except Exception as e:
                     print(str(e))
@@ -68,11 +68,8 @@ class Database:
             eolSoftwareList: list[SoftwareLifecycle] = []
             for row in rows:
                 eolSoftware: SoftwareLifecycle = SoftwareLifecycle(name=row[0])
-                eolSoftware.cycle = row[1]
-                eolSoftware.cycleShortHand = row[2]
-                eolSoftware.support = row[3]
-                eolSoftware.eol = row[4]
-                eolSoftware.releaseDate = row[5]
+                eolSoftware.version = row[1]
+                eolSoftware.eol = row[2]
                 eolSoftwareList.append(eolSoftware)
 
             return eolSoftwareList
@@ -105,7 +102,7 @@ class Database:
 
         try:
             self.__cursor.execute(
-                '''CREATE TABLE 'software' (name text, cycle text, cycleShorthand text, support text, eol text, releaseDate text)''')
+                '''CREATE TABLE 'software' (name text, version text, eol text)''')
 
             if (self.__table_exists('software_bak')):
                 self.__cursor.execute("DROP TABLE software_bak;")
