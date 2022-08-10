@@ -106,13 +106,22 @@ def main() -> None:
     # if(success):
     #     print("Flushed the EOL data to the database.")
 
-    result: list[SoftwareLifecycle] | None = database.searchSoftware('linux')
+    # eolSoftwareList: list[SoftwareLifecycle] | None = database.searchSoftware('linux')
 
-    if(result is None):
-        print("No software matches found with keyword.")
+    # if(eolSoftwareList is None):
+    #     print("No software matches found with keyword.")
+    # else:
+    #     for eolSoftware in eolSoftwareList:
+    #         print(eolSoftware)
+
+    eolHardwareList: list[HardwareLifecycle] | None = database.searchHardware(
+        'cisco')
+
+    if(eolHardwareList is None):
+        print("No hardware matches found with keyword.")
     else:
-        for eolSoftware in result:
-            print(eolSoftware)
+        for eolHardware in eolHardwareList:
+            print(eolHardware)
 
     database.close()
 

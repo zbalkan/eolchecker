@@ -56,7 +56,7 @@ class Database:
               hardwareCount, ' hardware records found.')
         return True
 
-    def searchSoftware(self, softwareName: str) -> Optional[list]:
+    def searchSoftware(self, softwareName: str) -> Optional[list[SoftwareLifecycle]]:
         cmd: str = "SELECT * FROM software WHERE name LIKE ?"
         args: str = '%' + softwareName + '%'
         self.__cursor.execute(cmd, (args,))
@@ -67,7 +67,7 @@ class Database:
         else:
             eolSoftwareList: list[SoftwareLifecycle] = []
             for row in rows:
-                eolSoftware = SoftwareLifecycle(name=row[0])
+                eolSoftware: SoftwareLifecycle = SoftwareLifecycle(name=row[0])
                 eolSoftware.cycle = row[1]
                 eolSoftware.cycleShortHand = row[2]
                 eolSoftware.support = row[3]
@@ -76,6 +76,23 @@ class Database:
                 eolSoftwareList.append(eolSoftware)
 
             return eolSoftwareList
+
+    def searchHardware(self, softwareName: str) -> Optional[list[HardwareLifecycle]]:
+        cmd: str = "SELECT * FROM hardware WHERE manufacturer LIKE ? OR model LIKE ?"
+        args: str = '%' + softwareName + '%'
+        self.__cursor.execute(cmd, (args,args,))
+
+        rows: list = self.__cursor.fetchall()
+        if(len(rows) == 0):
+            return None
+        else:
+            eolHardwareList: list[HardwareLifecycle] = []
+            for row in rows:
+                eolHardware: HardwareLifecycle = HardwareLifecycle(
+                    manufacturer=row[0], model=row[1], eol=row[2])
+                eolHardwareList.append(eolHardware)
+
+            return eolHardwareList
 
     def close(self) -> None:
         self.__connection.close()
