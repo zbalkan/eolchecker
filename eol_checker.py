@@ -104,14 +104,14 @@ def main() -> None:
     colorama.init(autoreset=True)
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
         description="Query EOL software or hardware.")
-    if len(sys.argv) < 1:
+    if len(sys.argv) < 2:
         parser.print_help()
     parser.add_argument("--software", dest="query_software", type=str, required=False,
                         help="Query the software by name")
     parser.add_argument("--hardware", dest="query_hardware", type=str, required=False,
                         help="Query the software by name")
     parser.add_argument("-u", "--update", dest="update_db", action='store_true', required=False,
-                        help="Updates the database. When combined with a query, it updates the database before running the query.")
+                        help="Updates the local database. When combined with a query, it updates the database before running the query.")
     args: argparse.Namespace = parser.parse_args()
 
     checker: EOLChecker = EOLChecker()
