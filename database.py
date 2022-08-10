@@ -15,7 +15,7 @@ class Database:
         self.__connection = sqlite3.connect(path)
         self.__cursor = self.__connection.cursor()
 
-    def flush(self, softwareList: Optional[list[SoftwareLifecycle]] = None, hardwareList: Optional[list[HardwareLifecycle]] = None) -> bool:
+    def save(self, softwareList: Optional[list[SoftwareLifecycle]] = None, hardwareList: Optional[list[HardwareLifecycle]] = None) -> bool:
 
         newSoftwareTable: bool = self.__recreate_software_table()
         newHardwareTable: bool = self.__recreate_hardware_table()
@@ -56,7 +56,7 @@ class Database:
               hardwareCount, ' hardware records found.')
         return True
 
-    def searchSoftware(self, softwareName: str) -> Optional[list[SoftwareLifecycle]]:
+    def search_software(self, softwareName: str) -> Optional[list[SoftwareLifecycle]]:
         cmd: str = "SELECT * FROM software WHERE name LIKE ?"
         args: str = '%' + softwareName + '%'
         self.__cursor.execute(cmd, (args,))
@@ -77,10 +77,10 @@ class Database:
 
             return eolSoftwareList
 
-    def searchHardware(self, softwareName: str) -> Optional[list[HardwareLifecycle]]:
+    def search_hardware(self, softwareName: str) -> Optional[list[HardwareLifecycle]]:
         cmd: str = "SELECT * FROM hardware WHERE manufacturer LIKE ? OR model LIKE ?"
         args: str = '%' + softwareName + '%'
-        self.__cursor.execute(cmd, (args,args,))
+        self.__cursor.execute(cmd, (args, args,))
 
         rows: list = self.__cursor.fetchall()
         if(len(rows) == 0):

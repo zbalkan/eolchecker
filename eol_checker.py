@@ -15,7 +15,7 @@ from softwareLifecycle import SoftwareLifecycle
 HtmlElement = Optional[bs4.NavigableString | bs4.Tag]
 
 
-class EOLChecker:
+class Downloader:
 
     SOFTWARE_EOL_API: str = 'https://endoflife.date'
     HARDWARE_EOL_URL: str = "https://www.hardwarewartung.com/en/"
@@ -114,17 +114,17 @@ def main() -> None:
                         help="Updates the local database. When combined with a query, it updates the database before running the query.")
     args: argparse.Namespace = parser.parse_args()
 
-    checker: EOLChecker = EOLChecker()
+    downloader: Downloader = Downloader()
     database: Database = Database('eol.db')
 
     if(args.update_db is True):
-        success: bool = database.flush(
-            softwareList=checker.get_eol_software(), hardwareList=checker.get_eol_hardware())
+        success: bool = database.save(
+            softwareList=downloader.get_eol_software(), hardwareList=downloader.get_eol_hardware())
         if(success):
             print("Updated the database.")
 
     if(args.query_software is not None):
-        eolSoftwareList: list[SoftwareLifecycle] | None = database.searchSoftware(
+        eolSoftwareList: list[SoftwareLifecycle] | None = database.search_software(
             args.query_software)
 
         if(eolSoftwareList is None):
@@ -134,7 +134,7 @@ def main() -> None:
                 print(eolSoftware)
 
     if(args.query_hardware is not None):
-        eolHardwareList: list[HardwareLifecycle] | None = database.searchHardware(
+        eolHardwareList: list[HardwareLifecycle] | None = database.search_hardware(
             args.query_hardware)
 
         if(eolHardwareList is None):
