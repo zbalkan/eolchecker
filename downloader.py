@@ -5,8 +5,8 @@ import bs4
 import requests
 from bs4 import BeautifulSoup
 
-from .hardwareLifecycle import HardwareLifecycle
-from .softwareLifecycle import SoftwareLifecycle
+from hardwareLifecycle import HardwareLifecycle
+from softwareLifecycle import SoftwareLifecycle
 
 HtmlElement = Optional[bs4.NavigableString | bs4.Tag]
 
