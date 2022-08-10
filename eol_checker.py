@@ -1,7 +1,10 @@
+import argparse
 import json
+import sys
 from typing import Any, Optional
 
 import bs4
+import colorama
 import requests
 from bs4 import BeautifulSoup
 
@@ -98,30 +101,47 @@ class EOLChecker:
 
 
 def main() -> None:
+    colorama.init(autoreset=True)
+    parser: argparse.ArgumentParser = argparse.ArgumentParser(
+        description="Query EOL software or hardware.")
+    if len(sys.argv) < 1:
+        parser.print_help()
+    parser.add_argument("--software", dest="query_software", type=str, required=False,
+                        help="Query the software by name")
+    parser.add_argument("--hardware", dest="query_hardware", type=str, required=False,
+                        help="Query the software by name")
+    parser.add_argument("-u", "--update", dest="update_db", action='store_true', required=False,
+                        help="Updates the database. When combined with a query, it updates the database before running the query.")
+    args: argparse.Namespace = parser.parse_args()
 
     checker: EOLChecker = EOLChecker()
     database: Database = Database('eol.db')
-    # success: bool = database.flush(
-    #     softwareList=checker.get_eol_software(), hardwareList=checker.get_eol_hardware())
-    # if(success):
-    #     print("Flushed the EOL data to the database.")
 
-    # eolSoftwareList: list[SoftwareLifecycle] | None = database.searchSoftware('linux')
+    if(args.update_db is True):
+        success: bool = database.flush(
+            softwareList=checker.get_eol_software(), hardwareList=checker.get_eol_hardware())
+        if(success):
+            print("Updated the database.")
 
-    # if(eolSoftwareList is None):
-    #     print("No software matches found with keyword.")
-    # else:
-    #     for eolSoftware in eolSoftwareList:
-    #         print(eolSoftware)
+    if(args.query_software is not None):
+        eolSoftwareList: list[SoftwareLifecycle] | None = database.searchSoftware(
+            args.query_software)
 
-    eolHardwareList: list[HardwareLifecycle] | None = database.searchHardware(
-        'cisco')
+        if(eolSoftwareList is None):
+            print("No software matches found with keyword.")
+        else:
+            for eolSoftware in eolSoftwareList:
+                print(eolSoftware)
 
-    if(eolHardwareList is None):
-        print("No hardware matches found with keyword.")
-    else:
-        for eolHardware in eolHardwareList:
-            print(eolHardware)
+    if(args.query_hardware is not None):
+        eolHardwareList: list[HardwareLifecycle] | None = database.searchHardware(
+            args.query_hardware)
+
+        if(eolHardwareList is None):
+            print("No hardware matches found with keyword.")
+        else:
+            for eolHardware in eolHardwareList:
+                print(eolHardware)
 
     database.close()
 
