@@ -56,6 +56,27 @@ class Database:
               hardwareCount, ' hardware records found.')
         return True
 
+    def searchSoftware(self, softwareName: str) -> Optional[list]:
+        cmd: str = "SELECT * FROM software WHERE name LIKE ?"
+        args: str = '%' + softwareName + '%'
+        self.__cursor.execute(cmd, (args,))
+
+        rows: list = self.__cursor.fetchall()
+        if(len(rows) == 0):
+            return None
+        else:
+            eolSoftwareList: list[SoftwareLifecycle] = []
+            for row in rows:
+                eolSoftware = SoftwareLifecycle(name=row[0])
+                eolSoftware.cycle = row[1]
+                eolSoftware.cycleShortHand = row[2]
+                eolSoftware.support = row[3]
+                eolSoftware.eol = row[4]
+                eolSoftware.releaseDate = row[5]
+                eolSoftwareList.append(eolSoftware)
+
+            return eolSoftwareList
+
     def close(self) -> None:
         self.__connection.close()
 

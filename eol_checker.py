@@ -101,10 +101,21 @@ def main() -> None:
 
     checker: EOLChecker = EOLChecker()
     database: Database = Database('eol.db')
-    success: bool = database.flush(softwareList= checker.get_eol_software(), hardwareList=checker.get_eol_hardware())
-    if(success):
-        print("Flushed the EOL data to the database.")
+    # success: bool = database.flush(
+    #     softwareList=checker.get_eol_software(), hardwareList=checker.get_eol_hardware())
+    # if(success):
+    #     print("Flushed the EOL data to the database.")
+
+    result: list[SoftwareLifecycle] | None = database.searchSoftware('linux')
+
+    if(result is None):
+        print("No software matches found with keyword.")
+    else:
+        for eolSoftware in result:
+            print(eolSoftware)
+
     database.close()
+
 
 if __name__ == '__main__':
     main()
