@@ -62,7 +62,7 @@ def main() -> None:
             print("Updated the database.")
 
     if(args.query_software is not None):
-        logging.debug('querying for %s', args.query_software)
+        logging.debug('Querying for keyword: %s', args.query_software)
 
         eolSoftwareList: Optional[list[SoftwareLifecycle]] = db.search_software(
             args.query_software)
@@ -72,11 +72,11 @@ def main() -> None:
             print("No software matches found with keyword.")
         else:
             for eolSoftware in eolSoftwareList:
-                logging.debug("Software found.")
+                logging.debug("Software found: %s", eolSoftware)
                 print(eolSoftware)
 
     if(args.query_hardware is not None):
-        logging.debug('querying for %s', args.query_hardware)
+        logging.debug('Querying for keyword: %s', args.query_hardware)
         eolHardwareList: Optional[list[HardwareLifecycle]] = db.search_hardware(
             args.query_hardware)
 
@@ -85,7 +85,7 @@ def main() -> None:
             print("No hardware matches found with keyword.")
         else:
             for eolHardware in eolHardwareList:
-                logging.debug("Hardware found.")
+                logging.debug("Hardware found: %s", eolHardware)
                 print(eolHardware)
 
     db.close()
