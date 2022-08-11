@@ -33,14 +33,21 @@ class Downloader:
 
     def get_eol_software(self) -> list[SoftwareLifecycle]:
         softwareList: list[SoftwareLifecycle] = []
+        try:
+            softwareListResponse: requests.Response = requests.get(
+                self.SOFTWARE_EOL_API + "/api/all.json")
+        except Exception as e:
+            raise SystemExit(str(e))
 
-        softwareListResponse: requests.Response = requests.get(
-            self.SOFTWARE_EOL_API + "/api/all.json")
         softwareListJsonString: list[str] = json.loads(
             softwareListResponse.content)
         for softwareName in softwareListJsonString:
-            softwareResponse: requests.Response = requests.get(
-                self.SOFTWARE_EOL_API + "/api/" + softwareName + ".json")
+            try:
+                softwareResponse: requests.Response = requests.get(
+                    self.SOFTWARE_EOL_API + "/api/" + softwareName + ".json")
+            except Exception as e:
+                raise SystemExit(str(e))
+
             softwareJsonString: list[str] = json.loads(
                 softwareResponse.content)
             for softwareLifecycleJson in softwareJsonString:
@@ -54,8 +61,12 @@ class Downloader:
     def get_eol_hardware(self) -> list[HardwareLifecycle]:
         eolHardware: list[HardwareLifecycle] = []
         for manufacturer in self.HARDWARE_MANUFACTURERS:
-            page: requests.Response = requests.get(
-                self.HARDWARE_EOL_URL + '/' + manufacturer)
+            try:
+                page: requests.Response = requests.get(
+                    self.HARDWARE_EOL_URL + '/' + manufacturer)
+            except Exception as e:
+                raise SystemExit(str(e))
+
             hardwareListJson: list[str] = json.loads(
                 self.html_to_json(page.content, 4))
 
