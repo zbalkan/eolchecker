@@ -45,6 +45,9 @@ def main() -> None:
     logging.debug('Opening database connection')
     db: Database = Database('eol.db')
 
+    softwareCount: int = 0
+    hardwareCount: int = 0
+
     if(args.update_db is True):
         logging.debug('Starting download')
         newEolSoftware: list[SoftwareLifecycle] = download.get_eol_software(
@@ -71,6 +74,7 @@ def main() -> None:
             logging.debug("No software matches found with keyword.")
             print("No software matches found with keyword.")
         else:
+            softwareCount: int = len(eolSoftwareList)
             for eolSoftware in eolSoftwareList:
                 logging.debug("Software found: %s", eolSoftware)
                 print(eolSoftware)
@@ -84,10 +88,13 @@ def main() -> None:
             logging.debug("No hardware matches found with keyword.")
             print("No hardware matches found with keyword.")
         else:
+            hardwareCount: int = len(eolHardwareList)
             for eolHardware in eolHardwareList:
                 logging.debug("Hardware found: %s", eolHardware)
                 print(eolHardware)
 
+    logging.debug('Total ', softwareCount, ' software and ',
+                  hardwareCount, ' hardware records found.')
     db.close()
     logging.debug('Closed database connection')
 

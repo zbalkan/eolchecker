@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any, Optional
 
 import bs4
@@ -29,19 +30,25 @@ class Downloader:
     ]
 
     def __init__(self) -> None:
+        logging.debug('Initiated downloader')
         pass
 
     def get_eol_software(self) -> list[SoftwareLifecycle]:
         softwareList: list[SoftwareLifecycle] = []
+
+        logging.debug('Getting software list')
+
         try:
             softwareListResponse: requests.Response = requests.get(
                 self.SOFTWARE_EOL_API + "/api/all.json")
         except Exception as e:
             raise SystemExit(str(e))
 
+        logging.debug('Getting EOL information for each software')
         softwareListJsonString: list[str] = json.loads(
             softwareListResponse.content)
         for softwareName in softwareListJsonString:
+            logging.debug('Getting EOL information for %s', softwareName)
             try:
                 softwareResponse: requests.Response = requests.get(
                     self.SOFTWARE_EOL_API + "/api/" + softwareName + ".json")
@@ -56,11 +63,20 @@ class Downloader:
                 temp.name = softwareName
                 softwareList.append(temp)
 
+        logging.debug('Total ' + str(len(softwareList)) +
+                      ' EOL software records found')
+
         return softwareList
 
     def get_eol_hardware(self) -> list[HardwareLifecycle]:
         eolHardware: list[HardwareLifecycle] = []
+
+        logging.debug('Getting hardware list')
+
         for manufacturer in self.HARDWARE_MANUFACTURERS:
+
+            logging.debug('Getting EOL information for %s', manufacturer)
+
             try:
                 page: requests.Response = requests.get(
                     self.HARDWARE_EOL_URL + '/' + manufacturer)
@@ -74,6 +90,9 @@ class Downloader:
                 temp: HardwareLifecycle = HardwareLifecycle.from_dict(
                     eolHardwareJson)
                 eolHardware.append(temp)
+
+        logging.debug('Total ' + str(len(eolHardware)) +
+                      ' EOL hardware records found')
 
         return eolHardware
 
