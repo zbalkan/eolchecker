@@ -48,7 +48,7 @@ def main() -> None:
     softwareCount: int = 0
     hardwareCount: int = 0
 
-    if(args.update_db is True):
+    if (args.update_db is True):
         logging.debug('Starting download')
         newEolSoftware: list[SoftwareLifecycle] = download.get_eol_software(
         )
@@ -60,17 +60,17 @@ def main() -> None:
         success: bool = db.save(
             softwareList=newEolSoftware, hardwareList=newEolHardware)
 
-        if(success):
+        if (success):
             logging.debug('Updated database')
             print("Updated the database.")
 
-    if(args.query_software is not None):
+    if (args.query_software is not None):
         logging.debug('Querying for keyword: %s', args.query_software)
 
         eolSoftwareList: Optional[list[SoftwareLifecycle]] = db.search_software(
             args.query_software)
 
-        if(eolSoftwareList is None):
+        if (eolSoftwareList is None):
             logging.debug("No software matches found with keyword.")
             print("No software matches found with keyword.")
         else:
@@ -78,13 +78,14 @@ def main() -> None:
             for eolSoftware in eolSoftwareList:
                 logging.debug("Software found: %s", eolSoftware)
                 print(eolSoftware)
+            print('Total ' + str(softwareCount) + ' software records found.')
 
-    if(args.query_hardware is not None):
+    if (args.query_hardware is not None):
         logging.debug('Querying for keyword: %s', args.query_hardware)
         eolHardwareList: Optional[list[HardwareLifecycle]] = db.search_hardware(
             args.query_hardware)
 
-        if(eolHardwareList is None):
+        if (eolHardwareList is None):
             logging.debug("No hardware matches found with keyword.")
             print("No hardware matches found with keyword.")
         else:
@@ -92,11 +93,11 @@ def main() -> None:
             for eolHardware in eolHardwareList:
                 logging.debug("Hardware found: %s", eolHardware)
                 print(eolHardware)
+            print('Total ' + str(hardwareCount) + ' hardware records found.')
 
-    logging.debug('Total ', softwareCount, ' software and ',
-                  hardwareCount, ' hardware records found.')
     db.close()
     logging.debug('Closed database connection')
+    logging.debug('Exiting')
 
 
 if __name__ == '__main__':
