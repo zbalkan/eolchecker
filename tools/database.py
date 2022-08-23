@@ -2,8 +2,7 @@ import logging
 import sqlite3
 from typing import Optional
 
-from hardwareLifecycle import HardwareLifecycle
-from softwareLifecycle import SoftwareLifecycle
+from models import HardwareLifecycle, SoftwareLifecycle
 
 
 # TODO: Add ID field for the records
@@ -54,7 +53,7 @@ class Database:
             return False
         else:
             newHardwareTableCreated: bool = self.__recreate_hardware_table()
-            if(newHardwareTableCreated is False):
+            if (newHardwareTableCreated is False):
                 logging.debug(
                     'Could not update the data. Leaving the database as is.')
                 return False
@@ -85,7 +84,7 @@ class Database:
         self.__cursor.execute(cmd, (args,))
 
         rows: list = self.__cursor.fetchall()
-        if(len(rows) == 0):
+        if (len(rows) == 0):
             logging.debug('Could not find a software matching the keyword')
             return None
         else:
@@ -111,7 +110,7 @@ class Database:
         self.__cursor.execute(cmd, (args, args,))
 
         rows: list = self.__cursor.fetchall()
-        if(len(rows) == 0):
+        if (len(rows) == 0):
             logging.debug('Could not find a hardware matching the keyword')
             return None
         else:

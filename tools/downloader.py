@@ -6,8 +6,8 @@ import bs4
 import requests
 from bs4 import BeautifulSoup
 
-from hardwareLifecycle import HardwareLifecycle
-from softwareLifecycle import SoftwareLifecycle
+from models import HardwareLifecycle, SoftwareLifecycle
+
 
 HtmlElement = Optional[bs4.NavigableString | bs4.Tag]
 
@@ -120,7 +120,8 @@ class Downloader:
             else:
                 itemsWithoutHeaders: list[str] = []
                 for index in cells:  # type: ignore
-                    itemsWithoutHeaders.append(index.text.strip())
+                    itemsWithoutHeaders.append(
+                        index.text.strip())  # type: ignore
                 if itemsWithoutHeaders:
                     data.append(itemsWithoutHeaders)
         return json.dumps(data, indent=indent)
