@@ -2,8 +2,7 @@ import logging
 import sqlite3
 from typing import Optional
 
-from models.hardwareLifecycle import HardwareLifecycle
-from models.softwareLifecycle import SoftwareLifecycle
+from models import HardwareLifecycle, SoftwareLifecycle
 
 
 # TODO: Add ID field for the records

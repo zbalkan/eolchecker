@@ -5,10 +5,8 @@ from typing import Optional
 
 import colorama
 
-from tools.database import Database
-from tools.downloader import Downloader
-from models.hardwareLifecycle import HardwareLifecycle
-from models.softwareLifecycle import SoftwareLifecycle
+from tools import Database, Downloader
+from models import HardwareLifecycle, SoftwareLifecycle
 
 
 def main() -> None:
