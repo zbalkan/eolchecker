@@ -5,10 +5,10 @@ from typing import Optional
 
 import colorama
 
-from database import Database
-from downloader import Downloader
-from hardwareLifecycle import HardwareLifecycle
-from softwareLifecycle import SoftwareLifecycle
+from tools.database import Database
+from tools.downloader import Downloader
+from models.hardwareLifecycle import HardwareLifecycle
+from models.softwareLifecycle import SoftwareLifecycle
 
 
 def main() -> None:
