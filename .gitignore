@@ -141,3 +141,5 @@ cspell.json
 /out
 launch.json
 *.db
+*.ini
+*.pypirc

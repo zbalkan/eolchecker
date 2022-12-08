@@ -4,8 +4,16 @@ EOL Checker is a simple application which gathers EOL information for software a
 
 ## Getting Started
 
+Install using pip
+
 ```bash
-usage: eol_checker.py [-h] [--software QUERY_SOFTWARE] [--hardware QUERY_HARDWARE] [-u]
+pip install eolchecker
+```
+
+Get help about usage:
+
+```bash
+usage: eolchecker [-h] [--software QUERY_SOFTWARE] [--hardware QUERY_HARDWARE] [-u]
 
 Query EOL software or hardware.
 
