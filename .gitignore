@@ -142,4 +142,3 @@ cspell.json
 launch.json
 *.db
 *.ini
-*.pypirc
