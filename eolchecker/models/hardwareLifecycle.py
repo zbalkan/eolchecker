@@ -15,16 +15,16 @@ class HardwareLifecycle:
     def from_dict(obj: Any) -> 'HardwareLifecycle':
         _manuf: str = str(obj.get("manuf.")).strip()
         _model: str = str(obj.get("model")).strip()
-        rawEol: str = str(
+        raw_eol: str = str(
             obj.get("end of manufacturer support (some dates may be estimated)")).strip()
-        if(rawEol == "" or rawEol == 'None'):
-            rawEol: str = str(obj.get("end-of-service-life")).strip()
+        if(raw_eol == "" or raw_eol == 'None'):
+            raw_eol = str(obj.get("end-of-service-life")).strip()
 
-        if(rawEol == "unknown" or rawEol == "noch unbekannt" or rawEol == "unbekannt"):
-            formattedEol: str = "unknown"
+        if(raw_eol == "unknown" or raw_eol == "noch unbekannt" or raw_eol == "unbekannt"):
+            formatted_eol: str = "unknown"
         else:
-            formattedEol: str = rawEol
+            formatted_eol = raw_eol
 
-        _eol: str = formattedEol
+        _eol: str = formatted_eol
 
         return HardwareLifecycle(_manuf, _model, _eol)

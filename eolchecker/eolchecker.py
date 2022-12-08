@@ -5,8 +5,8 @@ from typing import Optional
 
 import colorama
 
-from tools import Database, Downloader
-from models import HardwareLifecycle, SoftwareLifecycle
+from eolchecker.models import HardwareLifecycle, SoftwareLifecycle
+from eolchecker.tools import Database, Downloader
 
 
 def main() -> None:
@@ -16,7 +16,7 @@ def main() -> None:
                         level=logging.DEBUG)
 
     excepthook = logging.error
-    logging.debug('eol_checker started')
+    logging.debug('eolchecker started')
 
     colorama.init(autoreset=True)
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
@@ -34,29 +34,28 @@ def main() -> None:
                         dest="update_db",
                         action='store_true',
                         required=False,
-                        help="Updates the local database. When combined with a query, it updates the database before running the query.")
+                        help="Updates the local database. \
+                            When combined with a query, \
+                            it updates the database before running the query.")
     args: argparse.Namespace = parser.parse_args()
-    logging.debug('eol_checker parameters: %s', args)
+    logging.debug('eolchecker parameters: %s', args)
 
     download: Downloader = Downloader()
 
     logging.debug('Opening database connection')
-    db: Database = Database('eol.db')
-
-    softwareCount: int = 0
-    hardwareCount: int = 0
+    database: Database = Database('eol.db')
 
     if (args.update_db is True):
         logging.debug('Starting download')
-        newEolSoftware: list[SoftwareLifecycle] = download.get_eol_software(
+        new_eol_software: list[SoftwareLifecycle] = download.get_eol_software(
         )
-        newEolHardware: list[HardwareLifecycle] = download.get_eol_hardware(
+        new_eol_hardware: list[HardwareLifecycle] = download.get_eol_hardware(
         )
         logging.debug('Finished download')
 
         logging.debug('Updating database')
-        success: bool = db.save(
-            softwareList=newEolSoftware, hardwareList=newEolHardware)
+        success: bool = database.save(
+            software_list=new_eol_software, hardware_list=new_eol_hardware)
 
         if (success):
             logging.debug('Updated database')
@@ -65,35 +64,43 @@ def main() -> None:
     if (args.query_software is not None):
         logging.debug('Querying for keyword: %s', args.query_software)
 
-        eolSoftwareList: Optional[list[SoftwareLifecycle]] = db.search_software(
+        eol_software_list: Optional[list[SoftwareLifecycle]] = database.search_software(
             args.query_software)
 
-        if (eolSoftwareList is None):
+        if (eol_software_list is None):
             logging.debug("No software matches found with keyword.")
             print("No software matches found with keyword.")
         else:
-            softwareCount: int = len(eolSoftwareList)
-            for eolSoftware in eolSoftwareList:
-                logging.debug("Software found: %s", eolSoftware)
-                print(eolSoftware)
-            print('Total ' + str(softwareCount) + ' software records found.')
+            print("Software, Version: EOL Date")
+            print("***************************")
+            for eol_software in eol_software_list:
+                logging.debug("Software found: %s", eol_software)
+                print(eol_software)
+
+            print("***************************")
+            print('Total ' + str(len(eol_software_list)) +
+                  ' software records found.')
 
     if (args.query_hardware is not None):
         logging.debug('Querying for keyword: %s', args.query_hardware)
-        eolHardwareList: Optional[list[HardwareLifecycle]] = db.search_hardware(
+        eol_hardware_list: Optional[list[HardwareLifecycle]] = database.search_hardware(
             args.query_hardware)
 
-        if (eolHardwareList is None):
+        if (eol_hardware_list is None):
             logging.debug("No hardware matches found with keyword.")
             print("No hardware matches found with keyword.")
         else:
-            hardwareCount: int = len(eolHardwareList)
-            for eolHardware in eolHardwareList:
-                logging.debug("Hardware found: %s", eolHardware)
-                print(eolHardware)
-            print('Total ' + str(hardwareCount) + ' hardware records found.')
+            print("Manufacturer, Model: EOL Date")
+            print("*****************************")
+            for eol_hardware in eol_hardware_list:
+                logging.debug("Hardware found: %s", eol_hardware)
+                print(eol_hardware)
 
-    db.close()
+            print("*****************************")
+            print('Total ' + str(len(eol_hardware_list)) +
+                  ' hardware records found.')
+
+    database.close()
     logging.debug('Closed database connection')
     logging.debug('Exiting')
 

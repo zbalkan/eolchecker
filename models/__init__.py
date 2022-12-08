@@ -1,2 +1,0 @@
-from hardwareLifecycle import HardwareLifecycle
-from softwareLifecycle import SoftwareLifecycle
