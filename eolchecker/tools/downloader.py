@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Optional
+from typing import Any, Final, Optional
 
 import bs4
 import requests
@@ -13,8 +13,8 @@ HtmlElement = Optional[bs4.NavigableString | bs4.Tag]
 
 class Downloader:
 
-    SOFTWARE_EOL_API: str = 'https://endoflife.date'
-    HARDWARE_EOL_URL: str = "https://www.hardwarewartung.com/en/"
+    SOFTWARE_EOL_API: Final[str] = 'https://endoflife.date'
+    HARDWARE_EOL_URL: Final[str] = "https://www.hardwarewartung.com/en/"
     HARDWARE_MANUFACTURERS: list[str] = [
         'hp-end-of-life-en',
         'ibm-end-of-life-en',

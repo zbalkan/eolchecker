@@ -2,6 +2,10 @@
 
 EOL Checker is a simple application which gathers EOL information for software and hardware and allows you to query locally.
 
+The latest version is `0.1`.
+
+**Note** On the first use and after 7 days of expiry period, the database will be updated automatically. This is by design and cause slow start due to data download and database initiation.
+
 ## Getting Started
 
 Install using pip

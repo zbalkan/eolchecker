@@ -10,9 +10,9 @@ import colorama
 from eolchecker.models import HardwareLifecycle, SoftwareLifecycle
 from eolchecker.tools import Database, Downloader
 
-ENCODING: str = "utf-8"
-APP_NAME: str = 'eolchecker'
-APP_VERSION: str = '0.1'
+ENCODING: Final[str] = "utf-8"
+APP_NAME: Final[str] = 'eolchecker'
+APP_VERSION: Final[str] = '0.1'
 DB_PATH: Final[str] = 'eol.db'
 
 

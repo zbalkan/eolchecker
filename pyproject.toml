@@ -2,13 +2,11 @@
 name = "eolchecker"
 description = "EOL Checker is a simple application which gathers EOL information for software and hardware and allows you to query locally."
 readme = "README.md"
-version = "0.0.2.3"
-requires-python = ">=3.8"
-license = {file = "LICENSE.md"}
-keywords = [ "eol" ]
-authors = [
-    { name = "Zafer Balkan", email = "zafer@zaferbalkan.com" }
-]
+version = "0.1"
+requires-python = ">=3.9"
+license = { file = "LICENSE.md" }
+keywords = ["eol"]
+authors = [{ name = "Zafer Balkan", email = "zafer@zaferbalkan.com" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -39,10 +37,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "mypy>=0.971",
-    "mypy-extensions>=0.4.3"
-    ]
+dev = ["mypy>=0.971", "mypy-extensions>=0.4.3"]
 
 [project.urls]
 Homepage = "https://github.com/zbalkan/eolchecker"
