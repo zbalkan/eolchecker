@@ -8,10 +8,13 @@ The latest version is `0.1`.
 
 ## Getting Started
 
-Install using pip
+Install using `pip` or `pipx` ([recommended](https://pypa.github.io/pipx/)):
 
 ```bash
 pip install eolchecker
+
+#OR
+pipx install eolchecker
 ```
 
 Get help about usage:
