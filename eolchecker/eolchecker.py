@@ -1,26 +1,27 @@
 import argparse
+import datetime
 import logging
+import os
 import sys
-from typing import Optional
+from typing import Final, Optional
 
 import colorama
 
 from eolchecker.models import HardwareLifecycle, SoftwareLifecycle
 from eolchecker.tools import Database, Downloader
 
+ENCODING: str = "utf-8"
+APP_NAME: str = 'eolchecker'
+APP_VERSION: str = '0.1'
+DB_PATH: Final[str] = 'eol.db'
+
 
 def main() -> None:
-    logging.basicConfig(filename='eol.log',
-                        encoding='utf-8',
-                        format='%(asctime)s %(message)s',
-                        level=logging.DEBUG)
-
-    excepthook = logging.error
-    logging.debug('eolchecker started')
-
     colorama.init(autoreset=True)
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
-        description="Query EOL software or hardware.")
+        description=f"""
+        {APP_NAME} (v{APP_VERSION})": Query EOL software or hardware.
+        """)
     if len(sys.argv) < 2:
         parser.print_help()
     parser.add_argument("--software", dest="query_software",
@@ -38,43 +39,63 @@ def main() -> None:
                             When combined with a query, \
                             it updates the database before running the query.")
     args: argparse.Namespace = parser.parse_args()
-    logging.debug('eolchecker parameters: %s', args)
+    logging.info('eolchecker parameters: %s', args)
+    update_db: bool = args.update_db
 
+    logging.info('Initiating downloader.')
     download: Downloader = Downloader()
 
-    logging.debug('Opening database connection')
-    database: Database = Database('eol.db')
+    logging.info('Initiate database on first use.')
 
-    if (args.update_db is True):
-        logging.debug('Starting download')
+    # If update parameter is given, no need to check
+    if update_db == False:
+        # Create the database on first use
+        if os.path.exists(DB_PATH) is False:
+            update_db = True
+        else:
+            # Update if database is older than 7 days
+            modify_date = datetime.datetime.fromtimestamp(
+                os.path.getmtime(DB_PATH))
+            if modify_date < (datetime.datetime.now() - datetime.timedelta(days=7)):
+                print(
+                    'Database is older than 7 days. It will be updated before the query.')
+                update_db = True
+
+    logging.info('Opening database connection')
+    database: Database = Database(DB_PATH)
+
+    if (update_db is True):
+
+        print('Updating the database, it will take time.')
+        logging.info('Starting download')
         new_eol_software: list[SoftwareLifecycle] = download.get_eol_software(
         )
         new_eol_hardware: list[HardwareLifecycle] = download.get_eol_hardware(
         )
-        logging.debug('Finished download')
+        logging.info('Finished download')
 
-        logging.debug('Updating database')
+        logging.info('Updating database')
         success: bool = database.save(
             software_list=new_eol_software, hardware_list=new_eol_hardware)
 
         if (success):
-            logging.debug('Updated database')
+            logging.info('Updated database')
             print("Updated the database.")
 
     if (args.query_software is not None):
-        logging.debug('Querying for keyword: %s', args.query_software)
+        logging.info('Querying for keyword: %s', args.query_software)
 
         eol_software_list: Optional[list[SoftwareLifecycle]] = database.search_software(
             args.query_software)
 
         if (eol_software_list is None):
-            logging.debug("No software matches found with keyword.")
+            logging.info("No software matches found with keyword.")
             print("No software matches found with keyword.")
         else:
             print("Software, Version: EOL Date")
             print("***************************")
             for eol_software in eol_software_list:
-                logging.debug("Software found: %s", eol_software)
+                logging.info("Software found: %s", eol_software)
                 print(eol_software)
 
             print("***************************")
@@ -82,18 +103,18 @@ def main() -> None:
                   ' software records found.')
 
     if (args.query_hardware is not None):
-        logging.debug('Querying for keyword: %s', args.query_hardware)
+        logging.info('Querying for keyword: %s', args.query_hardware)
         eol_hardware_list: Optional[list[HardwareLifecycle]] = database.search_hardware(
             args.query_hardware)
 
         if (eol_hardware_list is None):
-            logging.debug("No hardware matches found with keyword.")
+            logging.info("No hardware matches found with keyword.")
             print("No hardware matches found with keyword.")
         else:
             print("Manufacturer, Model: EOL Date")
             print("*****************************")
             for eol_hardware in eol_hardware_list:
-                logging.debug("Hardware found: %s", eol_hardware)
+                logging.info("Hardware found: %s", eol_hardware)
                 print(eol_hardware)
 
             print("*****************************")
@@ -101,9 +122,40 @@ def main() -> None:
                   ' hardware records found.')
 
     database.close()
-    logging.debug('Closed database connection')
-    logging.debug('Exiting')
+    logging.info('Closed database connection')
+    logging.info('Exiting')
 
 
-if __name__ == '__main__':
-    main()
+def get_root_dir() -> str:
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    elif __file__:
+        return os.path.dirname(__file__)
+    else:
+        return './'
+
+
+if __name__ == "__main__":
+    try:
+        logging.basicConfig(filename=os.path.join(get_root_dir(), f'{APP_NAME}.log'),
+                            encoding=ENCODING,
+                            format='%(asctime)s:%(levelname)s:%(message)s',
+                            datefmt="%Y-%m-%dT%H:%M:%S%z",
+                            level=logging.INFO)
+
+        excepthook = logging.error
+        logging.info('Starting')
+        main()
+        logging.info('Exiting.')
+    except KeyboardInterrupt:
+        print('Cancelled by user.')
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
+    except Exception as ex:
+        print('ERROR: ' + str(ex))
+        try:
+            sys.exit(1)
+        except SystemExit:
+            os._exit(1)
