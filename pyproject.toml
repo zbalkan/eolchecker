@@ -2,7 +2,7 @@
 name = "eolchecker"
 description = "EOL Checker is a simple application which gathers EOL information for software and hardware and allows you to query locally."
 readme = "README.md"
-version = "0.1"
+version = "0.2.0"
 requires-python = ">=3.9"
 license = { file = "LICENSE.md" }
 keywords = ["eol"]
