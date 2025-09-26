@@ -40,8 +40,8 @@ def main() -> None:
 
         if args.command == "update":
             print("Updating software and hardware data...")
-            SoftwareUpdater(db).update()
-            metadata.set("last_update_software", str(int(time.time())))
+            # SoftwareUpdater(db).update()
+            # metadata.set("last_update_software", str(int(time.time())))
             HardwareUpdater(db).update()
             metadata.set("last_update_hardware", str(int(time.time())))
             db.update_indexes()
@@ -69,14 +69,15 @@ def main() -> None:
                 print("No results found.")
                 return
 
-            if results[0]["type"] == "software":
-                table = [[r["name"], r["cycle"], r["eol"],
-                          r["latest"], r["lts"]] for r in results]
-                print(tabulate(table, headers=[
-                    "Software", "Cycle", "EOL", "Latest", "LTS"]))
-            else:
-                table = [[r["manufacturer"], r["model"], r["eol"]]
-                         for r in results]
-                print(tabulate(table, headers=["Manufacturer", "Model", "EOL"]))
+            for t, rows in results.items():
+                if len(rows) == 0:
+                    print(f'No {t} results')
+                else:
+                    print(f"\n=== {t.capitalize()} Results ===")
+                    # skip score in table
+                    keys = [k for k in rows[0].keys() if k != "score"]
+                    table = [[r.get(k, "") for k in keys] for r in rows]
+                    print(tabulate(table, headers=[k.capitalize() for k in keys]))
+
         else:
             print("Unknown command")
