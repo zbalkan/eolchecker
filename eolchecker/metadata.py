@@ -1,5 +1,3 @@
-from typing import Any, Optional
-
 from db import Database
 
 
@@ -10,5 +8,5 @@ class Metadata:
     def set(self, key: str, value: str) -> None:
         self.db.set_metadata(key, value)
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> str | None:
         return self.db.get_metadata(key)

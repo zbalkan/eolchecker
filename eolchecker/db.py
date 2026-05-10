@@ -1,17 +1,23 @@
 import os
-from typing import Any, Optional
+from typing import Optional
 
 import duckdb
 
 
 class Database:
-    def __init__(self, db_path: str = "eol.db") -> None:
+    def __init__(
+        self,
+        db_path: str = "eol.db",
+        conn: duckdb.DuckDBPyConnection | None = None,
+        init_extensions: bool = True,
+    ) -> None:
         first_time = False
-        if not os.path.exists(db_path):
+        if conn is None and not os.path.exists(db_path):
             first_time = True
 
-        self.conn = duckdb.connect(db_path)
-        self._init_extensions()
+        self.conn = conn if conn is not None else duckdb.connect(db_path)
+        if init_extensions:
+            self._init_extensions()
         if first_time:
             self._init_schema()
 
@@ -57,12 +63,14 @@ class Database:
         self.conn.execute(
             "INSERT OR REPLACE INTO metadata VALUES (?, ?)", [key, value])
 
-    def get_metadata(self, key: str) -> Optional[Any]:
+    def get_metadata(self, key: str) -> Optional[str]:
         row = self.conn.execute(
             "SELECT value FROM metadata WHERE key = ?", [key]).fetchone()
         return row[0] if row else None
 
     def clear_table(self, table: str) -> None:
+        if table not in {"software", "hardware", "metadata"}:
+            raise ValueError(f"Invalid table name: {table}")
         self.conn.execute(f"DELETE FROM {table}")
 
     def insert(self, table: str, values: list) -> None:
