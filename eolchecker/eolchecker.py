@@ -12,7 +12,7 @@ from eolchecker.tools import Database, Downloader
 
 ENCODING: Final[str] = "utf-8"
 APP_NAME: Final[str] = 'eolchecker'
-APP_VERSION: Final[str] = '0.1'
+APP_VERSION: Final[str] = '0.1.1'
 DB_PATH: Final[str] = 'eol.db'
 
 
