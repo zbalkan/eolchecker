@@ -1,22 +1,35 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class SoftwareLifecycle:
+    """A validated software release lifecycle record."""
+
     name: str
     version: str
     eol: str
 
-    def __init__(self, name: str = '') -> None:
-        self.name = name
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("Software lifecycle name must not be empty")
+        if not self.version.strip():
+            raise ValueError("Software lifecycle version must not be empty")
+        if not self.eol.strip():
+            raise ValueError("Software lifecycle EOL value must not be empty")
 
     def __str__(self) -> str:
-        return self.name + ", " + self.version + ": " + self.eol
+        return f"{self.name}, {self.version}: {self.eol}"
 
-    @staticmethod
-    def from_dict(obj: Any) -> 'SoftwareLifecycle':
-        temp: SoftwareLifecycle = SoftwareLifecycle('')
-        temp.version = str(obj.get("cycle")).strip()
-        temp.eol = str(obj.get("eol")).strip()
-        return temp
+    @classmethod
+    def from_v1_release(
+        cls, product_name: str, release: Mapping[str, Any]
+    ) -> SoftwareLifecycle:
+        """Create a lifecycle record from an endoflife.date v1 release object."""
+        version = str(release.get("name") or release.get("label") or "").strip()
+        eol_value = release.get("eolFrom")
+        eol = "unknown" if eol_value in (None, "") else str(eol_value).strip()
+        return cls(name=product_name.strip(), version=version, eol=eol)

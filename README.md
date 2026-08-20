@@ -1,36 +1,46 @@
 # EOL checker
 
-EOL Checker is a simple application which gathers EOL information for software and hardware and allows you to query locally.
+EOL Checker retrieves software and hardware lifecycle information, stores it in a local SQLite cache, and provides command-line search. A refresh validates complete source datasets before atomically replacing the active cache, so an unsuccessful update leaves the prior cache intact.
 
-**Note** On the first use and after 7 days of expiry period, the database will be updated automatically. This is by design and cause slow start due to data download and database initiation.
+## Installation
 
-## Getting Started
-
-Install using `pip` or `pipx` ([recommended](https://pypa.github.io/pipx/)):
+Install from PyPI with `pip` or, preferably for a command-line application, [`pipx`](https://pypa.github.io/pipx/):
 
 ```bash
-pip install eolchecker
-
-#OR
 pipx install eolchecker
 ```
 
-Get help about usage:
+The package supports Python 3.10 or later.
+
+## Usage
+
+Refresh is explicit. Run it before the first query and whenever current source data is required:
 
 ```bash
-usage: eolchecker [-h] [--software QUERY_SOFTWARE] [--hardware QUERY_HARDWARE] [-u]
-
-Query EOL software or hardware.
-
-options:
-  -h, --help            show this help message and exit
-  --software QUERY_SOFTWARE
-                        Query the software by name
-  --hardware QUERY_HARDWARE
-                        Query the software by name
-  -u, --update          Updates the local database. When combined with a query, it updates the database before running the query.
+eolchecker --update
 ```
 
-## Thanks
+Search the cached data:
 
-The information for the software is based on data provided by [endoflife.date](https://endoflife.date) project. Hardware information is parsed from [Hardware Wartung website](https://www.hardwarewartung.com/en/).
+```bash
+eolchecker --software nginx
+eolchecker --hardware PowerEdge
+```
+
+Update and query in one command:
+
+```bash
+eolchecker --update --software nginx
+```
+
+The default cache path is `$XDG_CACHE_HOME/eolchecker/eol.db`, or `~/.cache/eolchecker/eol.db` when `XDG_CACHE_HOME` is unset. Use `--cache-path` to select another location:
+
+```bash
+eolchecker --cache-path /srv/eolchecker/eol.db --software nginx
+```
+
+Run `eolchecker --help` for all command options. Invoking the command without an operation displays help and does not access the network or create cache files.
+
+## Data sources
+
+Software lifecycle data is retrieved from the [endoflife.date v1 API](https://endoflife.date/docs/api/v1/). Hardware lifecycle data is parsed from the [Hardware Wartung website](https://www.hardwarewartung.com/en/). Upstream source changes or outages cause the update command to fail safely without replacing the active cache.

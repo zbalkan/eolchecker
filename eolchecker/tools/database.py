@@ -1,200 +1,154 @@
+from __future__ import annotations
+
 import logging
+import os
 import sqlite3
-from typing import Optional
+import tempfile
+from collections.abc import Sequence
+from pathlib import Path
 
 from ..models import HardwareLifecycle, SoftwareLifecycle
 
+logger = logging.getLogger(__name__)
 
-# TODO: Add ID field for the records
+
+class CacheError(RuntimeError):
+    """Raised when the lifecycle cache cannot be read or safely replaced."""
+
+
 class Database:
+    """A SQLite-backed lifecycle cache with atomic refresh semantics."""
 
-    __connection: sqlite3.Connection
-    __cursor: sqlite3.Cursor
+    def __init__(self, path: str | Path) -> None:
+        self._path = Path(path).expanduser()
 
-    def __init__(self, path: str) -> None:
-        logging.debug('Initiated database connection')
+    def save(
+        self,
+        software_list: Sequence[SoftwareLifecycle],
+        hardware_list: Sequence[HardwareLifecycle],
+    ) -> bool:
+        """Persist a complete validated generation without risking the active cache.
 
-        self.__connection = sqlite3.connect(path)
-        self.__cursor = self.__connection.cursor()
+        A new database is built alongside the active cache and then atomically
+        substituted only after both datasets have been written successfully.
+        """
+        software_records = list(software_list)
+        hardware_records = list(hardware_list)
+        self._validate_records(software_records, hardware_records)
 
-    def save(self, software_list: Optional[list[SoftwareLifecycle]] = None,
-             hardware_list: Optional[list[HardwareLifecycle]] = None) -> bool:
-        logging.debug('Initiating database recreation')
+        self._path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        descriptor, temporary_name = tempfile.mkstemp(
+            dir=self._path.parent,
+            prefix=f".{self._path.name}.",
+            suffix=".tmp",
+        )
+        os.close(descriptor)
+        temporary_path = Path(temporary_name)
 
-        if (software_list is None):
-            logging.debug(
-                'Provided software list is empty. Leaving the database as is.')
-            return False
+        try:
+            self._build_generation(temporary_path, software_records, hardware_records)
+            os.replace(temporary_path, self._path)
+            logger.info(
+                "Replaced lifecycle cache at %s with %s software and %s hardware records",
+                self._path,
+                len(software_records),
+                len(hardware_records),
+            )
+            return True
+        except (OSError, sqlite3.Error) as exception:
+            raise CacheError(f"Could not safely replace cache at {self._path}: {exception}") from exception
+        finally:
+            if temporary_path.exists():
+                try:
+                    temporary_path.unlink(missing_ok=True)
+                except OSError as exception:
+                    logger.warning("Could not remove temporary cache file %s: %s", temporary_path, exception)
 
-        new_software_table_created: bool = self.__recreate_software_table()
-        if (new_software_table_created is False):
-            logging.debug(
-                'Could not update the data. Leaving the database as is.')
-            return False
+    def search_software(self, software_name: str) -> list[SoftwareLifecycle]:
+        """Return software records whose product name contains the supplied term."""
+        query = self._normalized_query(software_name)
+        rows = self._fetch_all(
+            "SELECT name, version, eol FROM software WHERE name LIKE ? ORDER BY name, version",
+            (query,),
+        )
+        return [SoftwareLifecycle(name=row[0], version=row[1], eol=row[2]) for row in rows]
 
-        for software in software_list:
-            try:
-                software_cmd: str = "INSERT INTO software VALUES (?, ?, ?)"
-                software_args: tuple[str, str, str] = (
-                    software.name, software.version, software.eol)
-                self.__cursor.execute(software_cmd, software_args)
-            except Exception as exception:
-                raise SystemExit(str(exception)) from exception
-
-            self.__connection.commit()
-            logging.debug('Updated software table succesfully')
-
-        if (hardware_list is None):
-            logging.debug(
-                'Provided hardware list is empty. Leaving the database as is.')
-            return False
-
-        new_hardware_table_created: bool = self.__recreate_hardware_table()
-        if (new_hardware_table_created is False):
-            logging.debug(
-               'Could not update the data. Leaving the database as is.')
-            return False
-
-        for hardware in hardware_list:
-            try:
-                hardware_cmd: str = "INSERT INTO hardware VALUES (?, ?, ?)"
-                hardware_args: tuple[str, str, str] = (
-                    hardware.manufacturer, hardware.model, hardware.eol)
-                self.__cursor.execute(hardware_cmd, hardware_args)
-            except Exception as exception:
-                raise SystemExit(str(exception)) from exception
-
-        self.__connection.commit()
-        logging.debug('Updated hardware table succesfully')
-
-        return True
-
-    def search_software(self, software_name: str) -> Optional[list[SoftwareLifecycle]]:
-
-        logging.debug(
-            'Searching for keyword %s in software list', software_name)
-
-        cmd: str = "SELECT * FROM software WHERE name LIKE ?"
-        args: str = '%' + software_name + '%'
-        self.__cursor.execute(cmd, (args,))
-
-        rows: list = self.__cursor.fetchall()
-        if (len(rows) == 0):
-            logging.debug('Could not find a software matching the keyword')
-            return None
-        eol_software_list: list[SoftwareLifecycle] = []
-        for row in rows:
-            eol_software: SoftwareLifecycle = SoftwareLifecycle(name=row[0])
-            eol_software.version = row[1]
-            eol_software.eol = row[2]
-            eol_software_list.append(eol_software)
-
-        logging.debug('Found %s records matching the keyword',
-                      str(len(eol_software_list)))
-
-        return eol_software_list
-
-    def search_hardware(self, hardware_name: str) -> Optional[list[HardwareLifecycle]]:
-
-        logging.debug(
-            'Searching for keyword %s in hardware list', hardware_name)
-
-        cmd: str = "SELECT * FROM hardware WHERE manufacturer LIKE ? OR model LIKE ?"
-        args: str = '%' + hardware_name + '%'
-        self.__cursor.execute(cmd, (args, args,))
-
-        rows: list = self.__cursor.fetchall()
-        if (len(rows) == 0):
-            logging.debug('Could not find a hardware matching the keyword')
-            return None
-
-        eol_hardware_list: list[HardwareLifecycle] = []
-        for row in rows:
-            eol_hardware: HardwareLifecycle = HardwareLifecycle(
-                manufacturer=row[0], model=row[1], eol=row[2])
-            eol_hardware_list.append(eol_hardware)
-
-        logging.debug('Found %s records matching the keyword',
-                      str(len(eol_hardware_list)))
-
-        return eol_hardware_list
+    def search_hardware(self, hardware_name: str) -> list[HardwareLifecycle]:
+        """Return hardware records whose manufacturer or model contains the supplied term."""
+        query = self._normalized_query(hardware_name)
+        rows = self._fetch_all(
+            """
+            SELECT manufacturer, model, eol
+            FROM hardware
+            WHERE manufacturer LIKE ? OR model LIKE ?
+            ORDER BY manufacturer, model
+            """,
+            (query, query),
+        )
+        return [HardwareLifecycle(manufacturer=row[0], model=row[1], eol=row[2]) for row in rows]
 
     def close(self) -> None:
-        logging.debug('Closing database connection')
-        self.__connection.close()
+        """Retain the previous public API; connections are scoped per operation."""
 
-    def __recreate_software_table(self) -> bool:
-        logging.debug('Recreating the software table')
+    @staticmethod
+    def _validate_records(
+        software_records: Sequence[SoftwareLifecycle], hardware_records: Sequence[HardwareLifecycle]
+    ) -> None:
+        if not software_records:
+            raise CacheError("Refusing to replace the cache with an empty software dataset")
+        if not hardware_records:
+            raise CacheError("Refusing to replace the cache with an empty hardware dataset")
+        if not all(isinstance(record, SoftwareLifecycle) for record in software_records):
+            raise CacheError("Software dataset contains an invalid record")
+        if not all(isinstance(record, HardwareLifecycle) for record in hardware_records):
+            raise CacheError("Hardware dataset contains an invalid record")
 
-        if (self.__table_exists('software')):
-            logging.debug('Backing up the table...')
-            self.__cursor.execute(
-                "ALTER TABLE software RENAME TO software_bak;")
-
+    @staticmethod
+    def _build_generation(
+        path: Path,
+        software_records: Sequence[SoftwareLifecycle],
+        hardware_records: Sequence[HardwareLifecycle],
+    ) -> None:
+        connection = sqlite3.connect(path)
         try:
-            self.__cursor.execute(
-                '''CREATE TABLE 'software' (name text, version text, eol text)''')
+            connection.execute("PRAGMA journal_mode = DELETE")
+            connection.execute(
+                "CREATE TABLE software (name TEXT NOT NULL, version TEXT NOT NULL, eol TEXT NOT NULL)"
+            )
+            connection.execute(
+                "CREATE TABLE hardware (manufacturer TEXT NOT NULL, model TEXT NOT NULL, eol TEXT NOT NULL)"
+            )
+            connection.executemany(
+                "INSERT INTO software (name, version, eol) VALUES (?, ?, ?)",
+                [(record.name, record.version, record.eol) for record in software_records],
+            )
+            connection.executemany(
+                "INSERT INTO hardware (manufacturer, model, eol) VALUES (?, ?, ?)",
+                [(record.manufacturer, record.model, record.eol) for record in hardware_records],
+            )
+            connection.execute("CREATE INDEX software_name_index ON software(name)")
+            connection.execute("CREATE INDEX hardware_lookup_index ON hardware(manufacturer, model)")
+            software_count = connection.execute("SELECT COUNT(*) FROM software").fetchone()[0]
+            hardware_count = connection.execute("SELECT COUNT(*) FROM hardware").fetchone()[0]
+            if software_count != len(software_records) or hardware_count != len(hardware_records):
+                raise CacheError("Cache validation failed after writing the refreshed datasets")
+            connection.commit()
+        finally:
+            connection.close()
 
-            if (self.__table_exists('software_bak')):
-                self.__cursor.execute("DROP TABLE software_bak;")
-
-            logging.debug('Updated software table successfully.')
-            return True
-
-        except Exception as exception:
-            logging.error(str(exception))
-            logging.debug('An error occured. Rolling back.')
-            if (self.__table_exists('software')):
-                self.__cursor.execute("DROP TABLE software;")
-            self.__cursor.execute(
-                "ALTER TABLE software_bak RENAME TO software;")
-
-            logging.debug('Failed to update software table')
-
-            return False
-
-    def __recreate_hardware_table(self) -> bool:
-
-        logging.debug('Recreating the hardware table')
-
-        if (self.__table_exists('hardware')):
-            logging.debug('Backing up the table...')
-            self.__cursor.execute(
-                "ALTER TABLE hardware RENAME TO hardware_bak;")
-
+    def _fetch_all(self, statement: str, parameters: tuple[str, ...]) -> list[tuple[str, ...]]:
+        if not self._path.is_file():
+            return []
+        connection: sqlite3.Connection | None = None
         try:
-            self.__cursor.execute(
-                '''CREATE TABLE 'hardware' (manufacturer text, model text, eol text)''')
+            connection = sqlite3.connect(f"{self._path.resolve().as_uri()}?mode=ro", uri=True)
+            return connection.execute(statement, parameters).fetchall()
+        except sqlite3.Error as exception:
+            raise CacheError(f"Could not read cache at {self._path}: {exception}") from exception
+        finally:
+            if connection is not None:
+                connection.close()
 
-            if (self.__table_exists('hardware_bak')):
-                self.__cursor.execute("DROP TABLE hardware_bak;")
-
-            logging.debug('Updated hardware table successfully.')
-            return True
-
-        except Exception as exception:
-            logging.error(str(exception))
-            logging.debug('An error occured. Rolling back.')
-
-            if (self.__table_exists('hardware')):
-                self.__cursor.execute("DROP TABLE hardware;")
-
-            self.__cursor.execute(
-                "ALTER TABLE hardware_bak RENAME TO hardware;")
-
-            logging.debug('Failed to update hardware table')
-
-            return False
-
-    def __table_exists(self, table: str) -> bool:
-        logging.debug('Querying if table %s exists', table)
-        cmd: str = "SELECT count(name) FROM sqlite_master WHERE type='table' AND name=?"
-        args: list[str] = [table]
-        self.__cursor.execute(cmd, args)
-        exist: bool = self.__cursor.fetchone()[0] == 1
-        if (exist):
-            logging.debug('Table %s exists', table)
-            return True
-
-        logging.debug('Table %s does not exist', table)
-        return False
+    @staticmethod
+    def _normalized_query(value: str) -> str:
+        return f"%{value.strip()}%"

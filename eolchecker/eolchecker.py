@@ -1,161 +1,111 @@
+from __future__ import annotations
+
 import argparse
-import datetime
 import logging
 import os
 import sys
-from typing import Final, Optional
+from collections.abc import Sequence
+from pathlib import Path
 
-import colorama
+from eolchecker.tools import CacheError, Database, Downloader, SourceError
 
-from eolchecker.models import HardwareLifecycle, SoftwareLifecycle
-from eolchecker.tools import Database, Downloader
-
-ENCODING: Final[str] = "utf-8"
-APP_NAME: Final[str] = 'eolchecker'
-APP_VERSION: Final[str] = '0.1.1'
-DB_PATH: Final[str] = 'eol.db'
+APP_NAME = "eolchecker"
+APP_VERSION = "0.2.0"
+logger = logging.getLogger(__name__)
 
 
-def main() -> None:
-    colorama.init(autoreset=True)
-    parser: argparse.ArgumentParser = argparse.ArgumentParser(
-        description=f"""
-        {APP_NAME} (v{APP_VERSION})": Query EOL software or hardware.
-        """)
-    if len(sys.argv) < 2:
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=f"{APP_NAME} {APP_VERSION}: query cached software and hardware lifecycle data."
+    )
+    parser.add_argument("--software", metavar="NAME", help="Search software lifecycle records by product name")
+    parser.add_argument("--hardware", metavar="NAME", help="Search hardware lifecycle records by manufacturer or model")
+    parser.add_argument(
+        "-u",
+        "--update",
+        action="store_true",
+        help="Fetch, validate, and atomically replace the local lifecycle cache before querying",
+    )
+    parser.add_argument(
+        "--cache-path",
+        type=Path,
+        default=default_cache_path(),
+        help="Path to the local SQLite cache (default: %(default)s)",
+    )
+    parser.add_argument("--verbose", action="store_true", help="Enable diagnostic logging")
+    return parser
+
+
+def default_cache_path() -> Path:
+    cache_home = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+    return cache_home / APP_NAME / "eol.db"
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if not args.update and args.software is None and args.hardware is None:
         parser.print_help()
-    parser.add_argument("--software", dest="query_software",
-                        type=str, required=False,
-                        help="Query the software by name")
-    parser.add_argument("--hardware", dest="query_hardware",
-                        type=str,
-                        required=False,
-                        help="Query the software by name")
-    parser.add_argument("-u", "--update",
-                        dest="update_db",
-                        action='store_true',
-                        required=False,
-                        help="Updates the local database. \
-                            When combined with a query, \
-                            it updates the database before running the query.")
-    args: argparse.Namespace = parser.parse_args()
-    logging.info('eolchecker parameters: %s', args)
-    update_db: bool = args.update_db
+        return 0
 
-    logging.info('Initiating downloader.')
-    download: Downloader = Downloader()
+    configure_logging(args.verbose)
+    database = Database(args.cache_path)
 
-    logging.info('Initiate database on first use.')
+    try:
+        if args.update:
+            print("Updating the lifecycle cache. This may take a moment.")
+            with Downloader() as downloader:
+                database.save(
+                    software_list=downloader.get_eol_software(),
+                    hardware_list=downloader.get_eol_hardware(),
+                )
+            print(f"Updated lifecycle cache: {args.cache_path}")
 
-    # If update parameter is given, no need to check
-    if update_db == False:
-        # Create the database on first use
-        if os.path.exists(DB_PATH) is False:
-            update_db = True
-        else:
-            # Update if database is older than 7 days
-            modify_date = datetime.datetime.fromtimestamp(
-                os.path.getmtime(DB_PATH))
-            if modify_date < (datetime.datetime.now() - datetime.timedelta(days=7)):
-                print(
-                    'Database is older than 7 days. It will be updated before the query.')
-                update_db = True
+        if args.software is not None:
+            _print_software_results(database.search_software(args.software))
+        if args.hardware is not None:
+            _print_hardware_results(database.search_hardware(args.hardware))
+    except (CacheError, SourceError) as exception:
+        logger.error("Lifecycle operation failed: %s", exception)
+        print(f"ERROR: {exception}", file=sys.stderr)
+        return 3
+    except KeyboardInterrupt:
+        print("Cancelled by user.", file=sys.stderr)
+        return 130
 
-    logging.info('Opening database connection')
-    database: Database = Database(DB_PATH)
-
-    if (update_db is True):
-
-        print('Updating the database, it will take time.')
-        logging.info('Starting download')
-        new_eol_software: list[SoftwareLifecycle] = download.get_eol_software(
-        )
-        new_eol_hardware: list[HardwareLifecycle] = download.get_eol_hardware(
-        )
-        logging.info('Finished download')
-
-        logging.info('Updating database')
-        success: bool = database.save(
-            software_list=new_eol_software, hardware_list=new_eol_hardware)
-
-        if (success):
-            logging.info('Updated database')
-            print("Updated the database.")
-
-    if (args.query_software is not None):
-        logging.info('Querying for keyword: %s', args.query_software)
-
-        eol_software_list: Optional[list[SoftwareLifecycle]] = database.search_software(
-            args.query_software)
-
-        if (eol_software_list is None):
-            logging.info("No software matches found with keyword.")
-            print("No software matches found with keyword.")
-        else:
-            print("Software, Version: EOL Date")
-            print("***************************")
-            for eol_software in eol_software_list:
-                logging.info("Software found: %s", eol_software)
-                print(eol_software)
-
-            print("***************************")
-            print('Total ' + str(len(eol_software_list)) +
-                  ' software records found.')
-
-    if (args.query_hardware is not None):
-        logging.info('Querying for keyword: %s', args.query_hardware)
-        eol_hardware_list: Optional[list[HardwareLifecycle]] = database.search_hardware(
-            args.query_hardware)
-
-        if (eol_hardware_list is None):
-            logging.info("No hardware matches found with keyword.")
-            print("No hardware matches found with keyword.")
-        else:
-            print("Manufacturer, Model: EOL Date")
-            print("*****************************")
-            for eol_hardware in eol_hardware_list:
-                logging.info("Hardware found: %s", eol_hardware)
-                print(eol_hardware)
-
-            print("*****************************")
-            print('Total ' + str(len(eol_hardware_list)) +
-                  ' hardware records found.')
-
-    database.close()
-    logging.info('Closed database connection')
-    logging.info('Exiting')
+    return 0
 
 
-def get_root_dir() -> str:
-    if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
-    elif __file__:
-        return os.path.dirname(__file__)
-    else:
-        return './'
+def configure_logging(verbose: bool) -> None:
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        level=logging.DEBUG if verbose else logging.INFO,
+    )
+
+
+def _print_software_results(records: Sequence[object]) -> None:
+    if not records:
+        print("No software matches found.")
+        return
+    print("Software, Version: EOL Date")
+    print("***************************")
+    for record in records:
+        print(record)
+    print("***************************")
+    print(f"Total {len(records)} software records found.")
+
+
+def _print_hardware_results(records: Sequence[object]) -> None:
+    if not records:
+        print("No hardware matches found.")
+        return
+    print("Manufacturer, Model: EOL Date")
+    print("*****************************")
+    for record in records:
+        print(record)
+    print("*****************************")
+    print(f"Total {len(records)} hardware records found.")
 
 
 if __name__ == "__main__":
-    try:
-        logging.basicConfig(filename=os.path.join(get_root_dir(), f'{APP_NAME}.log'),
-                            encoding=ENCODING,
-                            format='%(asctime)s:%(levelname)s:%(message)s',
-                            datefmt="%Y-%m-%dT%H:%M:%S%z",
-                            level=logging.INFO)
-
-        excepthook = logging.error
-        logging.info('Starting')
-        main()
-        logging.info('Exiting.')
-    except KeyboardInterrupt:
-        print('Cancelled by user.')
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)
-    except Exception as ex:
-        print('ERROR: ' + str(ex))
-        try:
-            sys.exit(1)
-        except SystemExit:
-            os._exit(1)
+    sys.exit(main())
